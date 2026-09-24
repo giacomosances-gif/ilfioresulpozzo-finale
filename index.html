@@ -3,208 +3,168 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Il fiore sul pozzo - Enigma Finale</title>
+  <title>Il fiore sul pozzo - Gioco Finale</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #111827;
+      color: #f9fafb;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       padding: 20px;
     }
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 24px;
-      padding: 32px 24px;
-      max-width: 420px;
+    .game-card {
+      background: #1f2937;
+      border: 2px solid #374151;
+      border-radius: 20px;
+      padding: 30px 20px;
+      max-width: 400px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
-    h1 {
-      font-size: 1.6rem;
-      color: #fbbf24;
-      margin-bottom: 12px;
-      font-weight: 700;
-    }
-    p.intro {
-      font-size: 0.95rem;
-      color: #94a3b8;
-      line-height: 1.5;
-      margin-bottom: 24px;
-    }
-    .status-box {
-      background: #0f172a;
+    h1 { font-size: 1.5rem; color: #f59e0b; margin-bottom: 8px; }
+    p.subtitle { font-size: 0.9rem; color: #9ca3af; margin-bottom: 24px; }
+    .box-info {
+      background: #111827;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 20px;
-      border: 1px solid #1e293b;
     }
-    .status {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #38bdf8;
-      min-height: 24px;
-    }
-    .attempts {
-      font-size: 0.85rem;
-      color: #f43f5e;
-      margin-top: 8px;
-      font-weight: 600;
-    }
-    button {
-      background: #2563eb;
+    .stato-testo { font-size: 1rem; font-weight: bold; color: #38bdf8; min-height: 24px; }
+    .tentativi-testo { font-size: 0.85rem; color: #ef4444; margin-top: 6px; font-weight: bold; }
+    .btn-azione {
+      background: #059669;
       color: #ffffff;
       border: none;
-      padding: 18px 32px;
+      padding: 16px 28px;
       font-size: 1.1rem;
-      font-weight: 700;
+      font-weight: bold;
       border-radius: 50px;
       cursor: pointer;
       width: 100%;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-      transition: background 0.2s;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
     }
-    button:active { background: #1d4ed8; }
-    button:disabled { background: #475569; box-shadow: none; cursor: not-allowed; }
+    .btn-azione:disabled { background: #4b5563; box-shadow: none; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
-  <div class="card">
+  <div class="game-card">
     <h1>Il fiore sul pozzo</h1>
-    <p class="intro">Enigma Vocale Finale</p>
-    
-    <div class="status-box">
-      <div class="status" id="status-text">Premi il pulsante per iniziare</div>
-      <div class="attempts" id="attempts-text">Tentativi rimasti: 3</div>
+    <p class="subtitle">Escape Room Vocale Finale</p>
+
+    <div class="box-info">
+      <div class="stato-testo" id="txt-stato">Premi il pulsante per iniziare</div>
+      <div class="tentativi-testo" id="txt-tentativi">Tentativi rimasti: 3</div>
     </div>
 
-    <button id="main-btn" onclick="gestisciGioco()">INIZIA IL GIOCO</button>
+    <button class="btn-azione" id="btn-start" onclick="avviaGara()">AVVIA L'ENIGMA</button>
   </div>
 
   <script>
-    // Configurazione dell'enigma
-    const PAROLA_SEGRETA = "fiore"; // Cambia qui la parola chiave corretta (in minuscolo)
-    let tentativi = 3;
-    let inCorso = false;
+    const CHIAVE_CORRETTA = "fiore"; // Parola segreta da indovinare
+    let vite = 3;
+    let giocoAttivo = false;
 
-    // Sintesi vocale (Voce in italiano)
-    const synth = window.speechSynthesis;
-
-    function parla(testo, callback) {
-      if (synth.speaking) synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(testo);
-      utterance.lang = 'it-IT';
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-
-      utterance.onend = () => {
-        if (callback) callback();
-      };
-
-      synth.speak(utterance);
+    function parlaInItaliano(testo, alTermine) {
+      window.speechSynthesis.cancel();
+      const messaggio = new SpeechSynthesisUtterance(testo);
+      messaggio.lang = 'it-IT';
+      messaggio.rate = 0.9;
+      messaggio.onend = () => { if (alTermine) alTermine(); };
+      window.speechSynthesis.speak(messaggio);
     }
 
-    // Riconoscimento vocale (Microfono)
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let ascoltatore = null;
 
-    if (SpeechRecognition) {
-      recognition = new SpeechRecognition();
-      recognition.lang = 'it-IT';
-      recognition.continuous = false;
-      recognition.interimResults = false;
+    if (SpeechRec) {
+      ascoltatore = new SpeechRec();
+      ascoltatore.lang = 'it-IT';
+      ascoltatore.continuous = false;
+      ascoltatore.interimResults = false;
 
-      recognition.onstart = () => {
-        aggiornaStato("In ascolto... Parla ora!");
+      ascoltatore.onstart = () => {
+        impostaStato("In ascolto... Parla ora!");
       };
 
-      recognition.onresult = (event) => {
-        const risposta = event.results[0][0].transcript.toLowerCase().trim();
-        aggiornaStato(`Hai detto: "${risposta}"`);
-        valutaRisposta(risposta);
+      ascoltatore.onresult = (e) => {
+        const detto = e.results[0][0].transcript.toLowerCase().trim();
+        impostaStato('Hai detto: "' + detto + '"');
+        controllaRisposta(detto);
       };
 
-      recognition.onerror = (event) => {
-        if (event.error === 'no-speech') {
-          parla("Non ho sentito alcuna risposta. Riprova.", () => ascolta());
+      ascoltatore.onerror = (e) => {
+        if (e.error === 'no-speech') {
+          parlaInItaliano("Non ho sentito la risposta. Riprova.", () => attivaMicrofono());
         } else {
-          aggiornaStato("Errore microfono: " + event.error);
+          impostaStato("Errore microfono: " + e.error);
         }
       };
     } else {
-      alert("Il browser dello smartphone non supporta l'ascolto vocale. Aggiorna il sistema o usa Chrome/Safari.");
+      alert("Microfono non supportato dal browser. Usa Chrome o Edge.");
     }
 
-    function gestisciGioco() {
-      if (!inCorso) {
-        // Avvio nuovo gioco
-        tentativi = 3;
-        inCorso = true;
-        document.getElementById("main-btn").disabled = true;
-        aggiornaTentativi();
-        
-        const messaggioInizio = "Benvenuto nell'enigma finale de Il fiore sul pozzo. Hai tre tentativi per pronunciare la parola segreta. Qual è la tua risposta?";
-        aggiornaStato("Ascolta il messaggio...");
-        
-        parla(messaggioInizio, () => {
-          ascolta();
+    function avviaGara() {
+      if (!giocoAttivo) {
+        vite = 3;
+        giocoAttivo = true;
+        document.getElementById("btn-start").disabled = true;
+        aggiornaVite();
+
+        impostaStato("Ascolta il messaggio...");
+        parlaInItaliano("Benvenuto nell'enigma finale de Il fiore sul pozzo. Hai tre tentativi per pronunciare la parola segreta. Qual è la tua risposta?", () => {
+          attivaMicrofono();
         });
       }
     }
 
-    function ascolta() {
+    function attivaMicrofono() {
       try {
-        recognition.start();
-      } catch (e) {
-        console.log("Ascolto già in corso");
+        ascoltatore.start();
+      } catch (err) {
+        console.log("Microfono già aperto");
       }
     }
 
-    function valutaRisposta(risposta) {
-      if (risposta.includes(PAROLA_SEGRETA)) {
-        // Vittoria
-        aggiornaStato("SOLUZIONE CORRETTA!");
-        parla("Complimenti! Hai pronunciato la parola corretta e hai completato l'enigma finale de Il fiore sul pozzo!");
-        fineGioco("HAI VINTO! GIOCA ANCORA");
+    function controllaRisposta(testo) {
+      if (testo.includes(CHIAVE_CORRETTA)) {
+        impostaStato("RISPOSTA CORRETTA!");
+        parlaInItaliano("Complimenti! Hai detto la parola corretta e sbloccato il finale!");
+        chiudiGioco("HAI VINTO! GIOCA ANCORA");
       } else {
-        // Errore
-        tentativi--;
-        aggiornaTentativi();
+        vite--;
+        aggiornaVite();
 
-        if (tentativi > 0) {
-          const messaggioErrore = `Risposta errata. Ti rimangono ${tentativi} tentativi. Riprova ora!`;
-          parla(messaggioErrore, () => {
-            ascolta();
+        if (vite > 0) {
+          parlaInItaliano("Risposta errata. Ti rimangono " + vite + " tentativi. Riprova!", () => {
+            attivaMicrofono();
           });
         } else {
-          // Sconfitta
-          aggiornaStato("GAME OVER");
-          parla("Hai esaurito tutti i tentativi a tua disposizione. L'enigma del pozzo rimane un mistero.");
-          fineGioco("RIPROVA IL GIOCO");
+          impostaStato("GAME OVER");
+          parlaInItaliano("Hai esaurito tutti i tentativi. L'enigma rimane irrisolto.");
+          chiudiGioco("RIPROVA IL GIOCO");
         }
       }
     }
 
-    function fineGioco(testoPulsante) {
-      inCorso = false;
-      const btn = document.getElementById("main-btn");
-      btn.disabled = false;
-      btn.innerText = testoPulsante;
+    function chiudiGioco(testoTasto) {
+      giocoAttivo = false;
+      const b = document.getElementById("btn-start");
+      b.disabled = false;
+      b.innerText = testoTasto;
     }
 
-    function aggiornaStato(testo) {
-      document.getElementById("status-text").innerText = testo;
+    function impostaStato(t) {
+      document.getElementById("txt-stato").innerText = t;
     }
 
-    function aggiornaTentativi() {
-      document.getElementById("attempts-text").innerText = `Tentativi rimasti: ${tentativi}`;
+    function aggiornaVite() {
+      document.getElementById("txt-tentativi").innerText = "Tentativi rimasti: " + vite;
     }
   </script>
 </body>
