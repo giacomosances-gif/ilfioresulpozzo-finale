@@ -3,39 +3,209 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finale Il fiore sul pozzo</title>
+  <title>Il fiore sul pozzo - Enigma Finale</title>
   <style>
-    html, body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background-color: #f4f4f9;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
       display: flex;
       justify-content: center;
       align-items: center;
+      min-height: 100vh;
+      padding: 20px;
     }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 24px;
+      padding: 32px 24px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-size: 1.6rem;
+      color: #fbbf24;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    p.intro {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .status-box {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      border: 1px solid #1e293b;
+    }
+    .status {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #38bdf8;
+      min-height: 24px;
+    }
+    .attempts {
+      font-size: 0.85rem;
+      color: #f43f5e;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+    button {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 18px 32px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 50px;
+      cursor: pointer;
+      width: 100%;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      transition: background 0.2s;
+    }
+    button:active { background: #1d4ed8; }
+    button:disabled { background: #475569; box-shadow: none; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
-<script type="text/javascript">
-  (function(d, t) {
-      var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
-      v.onload = function() {
-        window.voiceflow.chat.load({
-          verify: { projectID: '6ab580a926d84510c6a46dbf' },
-          url: 'https://general-runtime.voiceflow.com',
-          voice: {
-            url: 'wss://runtime-api.voiceflow.com'
-          }
+  <div class="card">
+    <h1>Il fiore sul pozzo</h1>
+    <p class="intro">Enigma Vocale Finale</p>
+    
+    <div class="status-box">
+      <div class="status" id="status-text">Premi il pulsante per iniziare</div>
+      <div class="attempts" id="attempts-text">Tentativi rimasti: 3</div>
+    </div>
+
+    <button id="main-btn" onclick="gestisciGioco()">INIZIA IL GIOCO</button>
+  </div>
+
+  <script>
+    // Configurazione dell'enigma
+    const PAROLA_SEGRETA = "fiore"; // Cambia qui la parola chiave corretta (in minuscolo)
+    let tentativi = 3;
+    let inCorso = false;
+
+    // Sintesi vocale (Voce in italiano)
+    const synth = window.speechSynthesis;
+
+    function parla(testo, callback) {
+      if (synth.speaking) synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(testo);
+      utterance.lang = 'it-IT';
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+
+      utterance.onend = () => {
+        if (callback) callback();
+      };
+
+      synth.speak(utterance);
+    }
+
+    // Riconoscimento vocale (Microfono)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'it-IT';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        aggiornaStato("In ascolto... Parla ora!");
+      };
+
+      recognition.onresult = (event) => {
+        const risposta = event.results[0][0].transcript.toLowerCase().trim();
+        aggiornaStato(`Hai detto: "${risposta}"`);
+        valutaRisposta(risposta);
+      };
+
+      recognition.onerror = (event) => {
+        if (event.error === 'no-speech') {
+          parla("Non ho sentito alcuna risposta. Riprova.", () => ascolta());
+        } else {
+          aggiornaStato("Errore microfono: " + event.error);
+        }
+      };
+    } else {
+      alert("Il browser dello smartphone non supporta l'ascolto vocale. Aggiorna il sistema o usa Chrome/Safari.");
+    }
+
+    function gestisciGioco() {
+      if (!inCorso) {
+        // Avvio nuovo gioco
+        tentativi = 3;
+        inCorso = true;
+        document.getElementById("main-btn").disabled = true;
+        aggiornaTentativi();
+        
+        const messaggioInizio = "Benvenuto nell'enigma finale de Il fiore sul pozzo. Hai tre tentativi per pronunciare la parola segreta. Qual è la tua risposta?";
+        aggiornaStato("Ascolta il messaggio...");
+        
+        parla(messaggioInizio, () => {
+          ascolta();
         });
       }
-      v.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs"; 
-      v.type = "text/javascript"; 
-      s.parentNode.insertBefore(v, s);
-  })(document, 'script');
-</script>
+    }
 
+    function ascolta() {
+      try {
+        recognition.start();
+      } catch (e) {
+        console.log("Ascolto già in corso");
+      }
+    }
+
+    function valutaRisposta(risposta) {
+      if (risposta.includes(PAROLA_SEGRETA)) {
+        // Vittoria
+        aggiornaStato("SOLUZIONE CORRETTA!");
+        parla("Complimenti! Hai pronunciato la parola corretta e hai completato l'enigma finale de Il fiore sul pozzo!");
+        fineGioco("HAI VINTO! GIOCA ANCORA");
+      } else {
+        // Errore
+        tentativi--;
+        aggiornaTentativi();
+
+        if (tentativi > 0) {
+          const messaggioErrore = `Risposta errata. Ti rimangono ${tentativi} tentativi. Riprova ora!`;
+          parla(messaggioErrore, () => {
+            ascolta();
+          });
+        } else {
+          // Sconfitta
+          aggiornaStato("GAME OVER");
+          parla("Hai esaurito tutti i tentativi a tua disposizione. L'enigma del pozzo rimane un mistero.");
+          fineGioco("RIPROVA IL GIOCO");
+        }
+      }
+    }
+
+    function fineGioco(testoPulsante) {
+      inCorso = false;
+      const btn = document.getElementById("main-btn");
+      btn.disabled = false;
+      btn.innerText = testoPulsante;
+    }
+
+    function aggiornaStato(testo) {
+      document.getElementById("status-text").innerText = testo;
+    }
+
+    function aggiornaTentativi() {
+      document.getElementById("attempts-text").innerText = `Tentativi rimasti: ${tentativi}`;
+    }
+  </script>
 </body>
 </html>
