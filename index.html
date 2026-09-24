@@ -3,71 +3,98 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Il fiore sul pozzo - Gioco Finale</title>
+  <title>Il fiore sul pozzo - Enigma Finale</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background-color: #111827;
-      color: #f9fafb;
+      font-family: 'Georgia', serif;
+      background-color: #0f172a;
+      color: #f8fafc;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       padding: 20px;
     }
-    .game-card {
-      background: #1f2937;
-      border: 2px solid #374151;
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
       border-radius: 20px;
-      padding: 30px 20px;
-      max-width: 400px;
+      padding: 35px 25px;
+      max-width: 420px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     }
-    h1 { font-size: 1.5rem; color: #f59e0b; margin-bottom: 8px; }
-    p.subtitle { font-size: 0.9rem; color: #9ca3af; margin-bottom: 24px; }
-    .box-info {
-      background: #111827;
+    h1 {
+      font-size: 1.8rem;
+      color: #f59e0b;
+      margin-bottom: 8px;
+    }
+    p.subtitle {
+      font-size: 0.95rem;
+      color: #94a3b8;
+      margin-bottom: 25px;
+      font-style: italic;
+    }
+    .status-box {
+      background: #0f172a;
       border-radius: 12px;
       padding: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 25px;
+      border: 1px solid #1e293b;
     }
-    .stato-testo { font-size: 1rem; font-weight: bold; color: #38bdf8; min-height: 24px; }
-    .tentativi-testo { font-size: 0.85rem; color: #ef4444; margin-top: 6px; font-weight: bold; }
-    .btn-azione {
-      background: #059669;
+    .status {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #38bdf8;
+      min-height: 28px;
+    }
+    .attempts {
+      font-size: 0.85rem;
+      color: #f43f5e;
+      margin-top: 8px;
+      font-weight: bold;
+    }
+    button {
+      background: linear-gradient(135deg, #d97706, #b45309);
       color: #ffffff;
       border: none;
-      padding: 16px 28px;
+      padding: 18px 30px;
       font-size: 1.1rem;
       font-weight: bold;
       border-radius: 50px;
       cursor: pointer;
       width: 100%;
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+      box-shadow: 0 4px 20px rgba(217, 119, 6, 0.4);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
-    .btn-azione:disabled { background: #4b5563; box-shadow: none; cursor: not-allowed; }
+    button:disabled { background: #475569; box-shadow: none; cursor: not-allowed; }
   </style>
 </head>
 <body>
 
-  <div class="game-card">
+  <div class="card">
     <h1>Il fiore sul pozzo</h1>
-    <p class="subtitle">Escape Room Vocale Finale</p>
+    <p class="subtitle">L'Enigma Finale</p>
 
-    <div class="box-info">
-      <div class="stato-testo" id="txt-stato">Premi il pulsante per iniziare</div>
-      <div class="tentativi-testo" id="txt-tentativi">Tentativi rimasti: 3</div>
+    <div class="status-box">
+      <div class="status" id="txt-stato">Premi il pulsante per iniziare</div>
+      <div class="attempts" id="txt-tentativi">Tentativi rimasti: 3</div>
     </div>
 
-    <button class="btn-azione" id="btn-start" onclick="avviaGara()">AVVIA L'ENIGMA</button>
+    <button id="btn-main" onclick="avviaGara()">ENTRA NEL POZZO</button>
   </div>
 
   <script>
-    const CHIAVE_CORRETTA = "fiore"; // Parola segreta da indovinare
-    let vite = 3;
+    // Link YouTube configurati
+    const LINK_YOUTUBE_VITTORIA = "https://youtu.be/-w9pIqTdfWY";
+    const LINK_YOUTUBE_SCONFITTA = "https://youtu.be/PMo16Loz5r0";
+    
+    const PAROLA_SEGRETA = "luna"; // Parola chiave corretta
+    let tentativi = 3;
     let giocoAttivo = false;
 
     function parlaInItaliano(testo, alTermine) {
@@ -86,7 +113,6 @@
       ascoltatore = new SpeechRec();
       ascoltatore.lang = 'it-IT';
       ascoltatore.continuous = false;
-      ascoltatore.interimResults = false;
 
       ascoltatore.onstart = () => {
         impostaStato("In ascolto... Parla ora!");
@@ -95,28 +121,27 @@
       ascoltatore.onresult = (e) => {
         const detto = e.results[0][0].transcript.toLowerCase().trim();
         impostaStato('Hai detto: "' + detto + '"');
-        controllaRisposta(detto);
+        valutaRisposta(detto);
       };
 
       ascoltatore.onerror = (e) => {
-        if (e.error === 'no-speech') {
+        impostaStato("Non ho sentito la risposta.");
+        if (giocoAttivo && tentativi > 0) {
           parlaInItaliano("Non ho sentito la risposta. Riprova.", () => attivaMicrofono());
-        } else {
-          impostaStato("Errore microfono: " + e.error);
         }
       };
     } else {
-      alert("Microfono non supportato dal browser. Usa Chrome o Edge.");
+      alert("Il tuo browser non supporta il riconoscimento vocale.");
     }
 
     function avviaGara() {
       if (!giocoAttivo) {
-        vite = 3;
+        tentativi = 3;
         giocoAttivo = true;
-        document.getElementById("btn-start").disabled = true;
-        aggiornaVite();
+        document.getElementById("btn-main").disabled = true;
+        aggiornaTentativi();
 
-        impostaStato("Ascolta il messaggio...");
+        impostaStato("Ascolta l'enigma...");
         parlaInItaliano("Benvenuto nell'enigma finale de Il fiore sul pozzo. Hai tre tentativi per pronunciare la parola segreta. Qual è la tua risposta?", () => {
           attivaMicrofono();
         });
@@ -131,40 +156,36 @@
       }
     }
 
-    function controllaRisposta(testo) {
-      if (testo.includes(CHIAVE_CORRETTA)) {
+    function valutaRisposta(testo) {
+      if (testo.includes(PAROLA_SEGRETA)) {
         impostaStato("RISPOSTA CORRETTA!");
-        parlaInItaliano("Complimenti! Hai detto la parola corretta e sbloccato il finale!");
-        chiudiGioco("HAI VINTO! GIOCA ANCORA");
+        parlaInItaliano("Complimenti! Hai pronunciato la parola corretta. Verrai reindirizzato al finale!", () => {
+          window.location.href = LINK_YOUTUBE_VITTORIA;
+        });
       } else {
-        vite--;
-        aggiornaVite();
+        tentativi--;
+        aggiornaTentativi();
 
-        if (vite > 0) {
-          parlaInItaliano("Risposta errata. Ti rimangono " + vite + " tentativi. Riprova!", () => {
+        if (tentativi > 0) {
+          impostaStato("Risposta errata...");
+          parlaInItaliano("Risposta errata. Ti rimangono " + tentativi + " tentativi. Riprova!", () => {
             attivaMicrofono();
           });
         } else {
           impostaStato("GAME OVER");
-          parlaInItaliano("Hai esaurito tutti i tentativi. L'enigma rimane irrisolto.");
-          chiudiGioco("RIPROVA IL GIOCO");
+          parlaInItaliano("Hai esaurito tutti i tentativi. Il pozzo custodirà il suo segreto.", () => {
+            window.location.href = LINK_YOUTUBE_SCONFITTA;
+          });
         }
       }
-    }
-
-    function chiudiGioco(testoTasto) {
-      giocoAttivo = false;
-      const b = document.getElementById("btn-start");
-      b.disabled = false;
-      b.innerText = testoTasto;
     }
 
     function impostaStato(t) {
       document.getElementById("txt-stato").innerText = t;
     }
 
-    function aggiornaVite() {
-      document.getElementById("txt-tentativi").innerText = "Tentativi rimasti: " + vite;
+    function aggiornaTentativi() {
+      document.getElementById("txt-tentativi").innerText = "Tentativi rimasti: " + tentativi;
     }
   </script>
 </body>
