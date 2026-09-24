@@ -26,17 +26,8 @@
       text-align: center;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     }
-    h1 {
-      font-size: 1.8rem;
-      color: #f59e0b;
-      margin-bottom: 8px;
-    }
-    p.subtitle {
-      font-size: 0.95rem;
-      color: #94a3b8;
-      margin-bottom: 25px;
-      font-style: italic;
-    }
+    h1 { font-size: 1.8rem; color: #f59e0b; margin-bottom: 8px; }
+    p.subtitle { font-size: 0.95rem; color: #94a3b8; margin-bottom: 25px; font-style: italic; }
     .status-box {
       background: #0f172a;
       border-radius: 12px;
@@ -44,18 +35,8 @@
       margin-bottom: 25px;
       border: 1px solid #1e293b;
     }
-    .status {
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #38bdf8;
-      min-height: 28px;
-    }
-    .attempts {
-      font-size: 0.85rem;
-      color: #f43f5e;
-      margin-top: 8px;
-      font-weight: bold;
-    }
+    .status { font-size: 1.1rem; font-weight: bold; color: #38bdf8; min-height: 28px; }
+    .attempts { font-size: 0.85rem; color: #f43f5e; margin-top: 8px; font-weight: bold; }
     button {
       background: linear-gradient(135deg, #d97706, #b45309);
       color: #ffffff;
@@ -89,11 +70,9 @@
   </div>
 
   <script>
-    // Link YouTube configurati
-    const LINK_YOUTUBE_VITTORIA = "https://youtu.be/-w9pIqTdfWY";
-    const LINK_YOUTUBE_SCONFITTA = "https://youtu.be/PMo16Loz5r0";
+    const LINK_VITTORIA = "https://youtu.be/-w9pIqTdfWY";
+    const LINK_SCONFITTA = "https://youtu.be/PMo16Loz5r0";
     
-    const PAROLA_SEGRETA = "luna"; // Parola chiave corretta
     let tentativi = 3;
     let giocoAttivo = false;
 
@@ -102,7 +81,17 @@
       const messaggio = new SpeechSynthesisUtterance(testo);
       messaggio.lang = 'it-IT';
       messaggio.rate = 0.9;
-      messaggio.onend = () => { if (alTermine) alTermine(); };
+      
+      let chiamato = false;
+      messaggio.onend = () => {
+        if (!chiamato && alTermine) { chiamato = true; alTermine(); }
+      };
+      
+      // Timer di sicurezza se la sintesi vocale si blocca
+      setTimeout(() => {
+        if (!chiamato && alTermine) { chiamato = true; alTermine(); }
+      }, 4000);
+
       window.speechSynthesis.speak(messaggio);
     }
 
@@ -124,14 +113,12 @@
         valutaRisposta(detto);
       };
 
-      ascoltatore.onerror = (e) => {
-        impostaStato("Non ho sentito la risposta.");
+      ascoltatore.onerror = () => {
         if (giocoAttivo && tentativi > 0) {
-          parlaInItaliano("Non ho sentito la risposta. Riprova.", () => attivaMicrofono());
+          impostaStato("Non ho sentito. Riprova!");
+          setTimeout(() => attivaMicrofono(), 1200);
         }
       };
-    } else {
-      alert("Il tuo browser non supporta il riconoscimento vocale.");
     }
 
     function avviaGara() {
@@ -142,7 +129,7 @@
         aggiornaTentativi();
 
         impostaStato("Ascolta l'enigma...");
-        parlaInItaliano("Benvenuto nell'enigma finale de Il fiore sul pozzo. Hai tre tentativi per pronunciare la parola segreta. Qual è la tua risposta?", () => {
+        parlaInItaliano("Benvenuto nell'enigma finale de Il fiore sul pozzo. Qual è la tua risposta?", () => {
           attivaMicrofono();
         });
       }
@@ -151,16 +138,15 @@
     function attivaMicrofono() {
       try {
         ascoltatore.start();
-      } catch (err) {
-        console.log("Microfono già aperto");
-      }
+      } catch (err) {}
     }
 
     function valutaRisposta(testo) {
-      if (testo.includes(PAROLA_SEGRETA)) {
+      // Controlla se la frase detta contiene la parola 'luna'
+      if (testo.includes("luna")) {
         impostaStato("RISPOSTA CORRETTA!");
-        parlaInItaliano("Complimenti! Hai pronunciato la parola corretta. Verrai reindirizzato al finale!", () => {
-          window.location.href = LINK_YOUTUBE_VITTORIA;
+        parlaInItaliano("Bravo! Risposta corretta.", () => {
+          window.location.href = LINK_VITTORIA;
         });
       } else {
         tentativi--;
@@ -168,13 +154,13 @@
 
         if (tentativi > 0) {
           impostaStato("Risposta errata...");
-          parlaInItaliano("Risposta errata. Ti rimangono " + tentativi + " tentativi. Riprova!", () => {
+          parlaInItaliano("Risposta errata. Riprova!", () => {
             attivaMicrofono();
           });
         } else {
           impostaStato("GAME OVER");
-          parlaInItaliano("Hai esaurito tutti i tentativi. Il pozzo custodirà il suo segreto.", () => {
-            window.location.href = LINK_YOUTUBE_SCONFITTA;
+          parlaInItaliano("Hai perso. Verrai reindirizzato.", () => {
+            window.location.href = LINK_SCONFITTA;
           });
         }
       }
